@@ -1,0 +1,37 @@
+{
+    "name": "septa-data-analyzer",
+    "version": "1.0.0",
+    "main": "index.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "dev:log": "ts-node ./src/log.ts",
+        "dev:sample": "ts-node ./src/sample.ts",
+        "dev:analyze": "ts-node ./src/analyze.ts",
+        "dev:csv": "ts-node ./src/output_csv.ts",
+        "dev:plot": "ts-node ./src/plot.ts",
+        "build": "tsc",
+        "start:log": "node ./dist/log.js",
+        "start:sample": "node ./dist/sample.js",
+        "start:analyze": "node ./dist/analyze.js",
+        "start:csv": "node ./dist/output_csv.js",
+        "start:plot": "node ./dist/plot.js"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "description": "",
+    "dependencies": {
+        "@prisma/client": "^6.7.0",
+        "chart.js": "^4.4.9",
+        "csv": "^6.3.11",
+        "mathjs": "^14.4.0",
+        "skia-canvas": "^2.0.2",
+        "toad-scheduler": "^3.1.0"
+    },
+    "devDependencies": {
+        "@types/node": "^22.15.17",
+        "prisma": "^6.7.0",
+        "ts-node": "^10.9.2",
+        "typescript": "^5.8.3"
+    }
+}
