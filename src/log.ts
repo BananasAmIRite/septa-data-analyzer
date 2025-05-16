@@ -1,7 +1,11 @@
+import { PrismaBetterSQLite3 } from '@prisma/adapter-better-sqlite3';
 import { PrismaClient } from '@prisma/client';
 import { AsyncTask, SimpleIntervalJob, ToadScheduler } from 'toad-scheduler';
 
-const prisma = new PrismaClient();
+const adapter = new PrismaBetterSQLite3({
+    url: 'file:./prisma/dev.db',
+});
+const prisma = new PrismaClient({ adapter });
 
 const fetchData = async () => {
     const data = await fetch('https://www3.septa.org/api/TransitViewAll/index.php');

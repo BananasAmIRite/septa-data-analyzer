@@ -1,35 +1,44 @@
 import { PrismaClient, SeptaEntry } from '@prisma/client';
-import type { Sample, SampleAnalysis } from './types.d.ts';
+import type { Sample, SampleAnalysis, SampleData } from './types.d.ts';
 import { writeFileSync } from 'fs';
+import { PrismaBetterSQLite3 } from '@prisma/adapter-better-sqlite3';
+import { DatasetController } from 'chart.js';
 
-const prisma = new PrismaClient();
+const adapter = new PrismaBetterSQLite3({
+    url: 'file:./prisma/dev.db',
+});
+const prisma = new PrismaClient({ adapter });
 
 const SAMPLE_SIZE = 1000;
 const OUTPUT = './sample_data.json';
 
-const randomlySample = (data: SeptaEntry[], usedSamples: Sample[]): Sample => {
+const collapseSamples = (data: SeptaEntry[]): SampleData[] => {
+    let collapsed: SampleData[] = [];
+    for (const val of data) {
+        const dataJson = JSON.parse((val.json as any).value);
+
+        const routesData: any[] = Object.values(dataJson.routes[0]);
+        for (const route of routesData) {
+            for (const bus of route) {
+                collapsed.push({
+                    rawData: bus,
+                    route: bus.route_id,
+                });
+            }
+        }
+    }
+    return collapsed;
+};
+
+const randomlySample = (data: SampleData[], usedSamples: SampleData[]): SampleData => {
     const size = data.length;
     const randomIndex = Math.floor(Math.random() * size);
 
-    const dataJson = data[randomIndex].json as any;
+    const sample = data[randomIndex];
 
-    const possibleRoutes = Object.keys(dataJson.routes[0]);
-    const randomRoute = possibleRoutes[Math.floor(Math.random() * possibleRoutes.length)];
+    const isUsed = usedSamples.includes(sample);
 
-    const randomRouteIndex = Math.floor(Math.random() * dataJson.routes[0][randomRoute].length);
-
-    const sample: Sample = {
-        index: randomIndex,
-        route: randomRoute,
-        routeIndex: randomRouteIndex,
-    };
-
-    const isUsed =
-        usedSamples.findIndex(
-            (e) => e.index === sample.index && e.route === sample.route && e.routeIndex === sample.routeIndex
-        ) !== -1;
-
-    const dataSample = dataJson.routes[0][randomRoute][randomRouteIndex];
+    const dataSample = sample.rawData;
 
     const isInvalid =
         dataSample.next_stop_id === null ||
@@ -48,42 +57,42 @@ const randomlySample = (data: SeptaEntry[], usedSamples: Sample[]): Sample => {
     return sample;
 };
 
-const fetchSample = (data: SeptaEntry[], sample: Sample) => {
-    return (data[sample.index].json as any).routes[0][sample.route][sample.routeIndex];
-};
-
-const analyzeSample = (allData: SeptaEntry[], sample: Sample): SampleAnalysis => {
-    const busData = fetchSample(allData, sample);
+const analyzeSample = (sampleData: SampleData): SampleAnalysis => {
+    const busData = sampleData.rawData;
 
     const latenessSeconds = parseInt(busData['Offset_sec']);
-    const latenessMinutes = busData['late'];
+    // const latenessMinutes = busData['late'];
     const timestamp = new Date(busData['timestamp'] * 1000);
 
     return {
-        sample,
         rawData: busData,
         lateness_seconds: latenessSeconds,
-        lateness_minutes: latenessMinutes,
+        lateness_minutes: latenessSeconds / 60,
         timestamp,
     };
 };
 
 (async () => {
-    const allData = await prisma.septaEntry.findMany();
+    const allData: any = await prisma.septaEntry.findMany();
 
-    const usedSamples: Sample[] = [];
+    console.log(`Retrieved ${allData.length} minutes of data. Collapsing data into array...`);
+
+    const collapsed = collapseSamples(allData);
+
+    console.log(`Collapsed data into ${collapsed.length} data points. `);
+
+    const usedSamples: SampleData[] = [];
 
     console.log('Generating random samples...');
 
     const nonRepeatingSamples = [];
     for (let i = 0; i < SAMPLE_SIZE; i++) {
-        nonRepeatingSamples.push(randomlySample(allData, usedSamples));
+        nonRepeatingSamples.push(randomlySample(collapsed, usedSamples));
     }
 
     console.log(`Generated random samples. Analyzing samples...`);
 
-    console.log(nonRepeatingSamples);
-    const analysis = nonRepeatingSamples.map((e) => analyzeSample(allData, e));
+    const analysis = nonRepeatingSamples.map((e) => analyzeSample(e));
 
     console.log(`Writing analysis to file: ${OUTPUT}`);
     writeFileSync(OUTPUT, JSON.stringify(analysis));

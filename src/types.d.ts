@@ -4,8 +4,12 @@ export interface Sample {
     routeIndex: number;
 }
 
+export interface SampleData {
+    rawData: any;
+    route: string;
+}
+
 export interface SampleAnalysis {
-    sample: Sample;
     rawData: any;
     lateness_seconds: number;
     lateness_minutes: number;

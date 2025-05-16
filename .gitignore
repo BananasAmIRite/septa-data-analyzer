@@ -4,5 +4,6 @@ node_modules
 output.png
 sample_data.csv
 sample_data.json
+chi2_table.csv
 dist/
 /prisma/dev.db

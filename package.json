@@ -21,6 +21,7 @@
     "license": "ISC",
     "description": "",
     "dependencies": {
+        "@prisma/adapter-better-sqlite3": "^6.8.1",
         "@prisma/client": "^6.7.0",
         "chart.js": "^4.4.9",
         "csv": "^6.3.11",
