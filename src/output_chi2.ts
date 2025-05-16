@@ -1,6 +1,5 @@
 import { readFileSync, writeFileSync } from 'fs';
-import { SampleAnalysis } from './types';
-import { isRushHour } from './analyze';
+import { isRushHour, SampleAnalysis } from './shared';
 
 const INPUT = './sample_data.json';
 

@@ -1,5 +1,5 @@
 import { readFileSync, writeFileSync } from 'fs';
-import { SampleAnalysis } from './types';
+import { SampleAnalysis } from './shared';
 import { Canvas } from 'skia-canvas';
 import {
     BarController,
@@ -11,7 +11,7 @@ import {
     LineElement,
     PointElement,
 } from 'chart.js';
-import { splitData } from './analyze';
+import { splitData } from './shared';
 
 const INPUT = './sample_data.json';
 
