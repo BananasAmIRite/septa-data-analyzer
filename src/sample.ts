@@ -1,5 +1,5 @@
 import { PrismaClient, SeptaEntry } from '@prisma/client';
-import { SampleAnalysis, SampleData } from './shared.js';
+import { analyzeSample, collapseSamples, isDataSampleInvalid, isWeekend, SampleAnalysis, SampleData } from './shared';
 import { writeFileSync } from 'fs';
 import { PrismaBetterSQLite3 } from '@prisma/adapter-better-sqlite3';
 
@@ -9,28 +9,8 @@ const adapter = new PrismaBetterSQLite3({
 });
 const prisma = new PrismaClient({ adapter });
 
-const SAMPLE_SIZE = 1000;
+const SAMPLE_SIZE = 3000;
 const OUTPUT = './sample_data.json';
-
-// collapses the nested septa entries into one big array of septa times at a specific minute
-const collapseSamples = (data: SeptaEntry[]): SampleData[] => {
-    let collapsed: SampleData[] = [];
-    for (const val of data) {
-        const dataJson = JSON.parse((val.json as any).value);
-
-        const routesData: any[] = Object.values(dataJson.routes[0]);
-        for (const route of routesData) {
-            for (const bus of route) {
-                collapsed.push({
-                    rawData: bus,
-                    route: bus.route_id,
-                    timestamp: new Date(bus.timestamp * 1000),
-                });
-            }
-        }
-    }
-    return collapsed;
-};
 
 // randomly samples from the given dataset, as long as the data is valid and it is not already used (from the usedSamples array)
 const randomlySample = (data: SampleData[], usedSamples: SampleData[]): SampleData => {
@@ -43,36 +23,17 @@ const randomlySample = (data: SampleData[], usedSamples: SampleData[]): SampleDa
 
     const dataSample = sample.rawData;
 
-    const isInvalid =
-        dataSample.next_stop_id === null ||
-        dataSample.next_stop_name === null ||
-        dataSample.next_stop_sequence === null ||
-        dataSample.heading === null ||
-        dataSample.late === 999 ||
-        dataSample.late === 998;
+    const isInvalid = isDataSampleInvalid(dataSample);
 
-    if (isUsed || isInvalid) {
+    const weekend = isWeekend(new Date(sample.timestamp));
+
+    if (isUsed || isInvalid || weekend) {
         return randomlySample(data, usedSamples);
     }
 
     usedSamples.push(sample);
 
     return sample;
-};
-
-// Pull important information from each sample (eg. lateness in seconds and minutes, time stamp of the sample point, etc. )
-const analyzeSample = (sampleData: SampleData): SampleAnalysis => {
-    const busData = sampleData.rawData;
-
-    const latenessSeconds = parseInt(busData['Offset_sec']);
-    const timestamp = new Date(busData['timestamp'] * 1000);
-
-    return {
-        rawData: busData,
-        lateness_seconds: latenessSeconds,
-        lateness_minutes: latenessSeconds / 60,
-        timestamp,
-    };
 };
 
 (async () => {

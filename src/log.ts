@@ -9,13 +9,14 @@ const prisma = new PrismaClient({ adapter });
 
 const fetchData = async () => {
     const data = await fetch('https://www3.septa.org/api/TransitViewAll/index.php');
+    let text = await data.text();
     let json;
     try {
-        json = await data.json();
+        json = JSON.parse(text);
     } catch (err) {
         console.log(`Fetching error: ${err}`);
         console.log(`Data status: ${data.status}`);
-        console.log(`Data text: ${await data.text()}`);
+        console.log(`Data text: ${text}`);
         throw err;
     }
 
